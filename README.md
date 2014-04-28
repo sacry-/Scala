@@ -1,0 +1,1 @@
+Scala Course by Prof Esser - HAW Hamburg
