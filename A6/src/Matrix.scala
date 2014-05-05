@@ -1,26 +1,32 @@
+import java.text.DecimalFormat
+
 /**
  * Created by sacry on 24/04/14.
  */
 
 object ForEach {
-  def forEach[A](f: (Int => Int => A), n: Int): List[A] = {
+  def forEach(f: (Int => Int => Double), n: Int): Array[Double] = {
+    (for (i <- (0 until n); j <- (0 until n)) yield f(i)(j)).toArray
+  }
+
+  def forEachGeneric[A](f: (Int => Int => A), n: Int): List[A] = {
     (for (i <- (0 until n); j <- (0 until n)) yield f(i)(j)).toList
   }
 }
 
 class Matrix private(matrix: Array[Double], val n: Int) {
 
-  import ForEach.forEach;
+  import ForEach._;
 
   def apply(i: Int, j: Int) = matrix(i * n + j)
 
-  val size = n * n
+  lazy val size = n * n
 
   def sameSizeOf(m: Matrix) = m.n == n
 
   def +(m1: Matrix) = {
     require(sameSizeOf(m1))
-    new Matrix(forEach(i => j => m1(i, j) + this(i, j), n).toArray, n)
+    new Matrix(forEach(i => j => m1(i, j) + this(i, j), n), n)
   }
 
   def *(x: Double) = new Matrix(forEach(i => j => x * this(i, j), n).toArray, n)
@@ -34,19 +40,19 @@ class Matrix private(matrix: Array[Double], val n: Int) {
       , n)
   }
 
-  def -(m1: Matrix) = this + (-m1)
+  def -(m1: Matrix) = new Matrix(forEach(i => j => this(i, j) - m1(i, j), n), n)
 
-  def unary_- = new Matrix(forEach(i => j => -this(i, j), n).toArray, n)
+  def unary_- = new Matrix(this.matrix.map(-_), n)
 
   override def equals(any: Any) = {
     lazy val other = any.asInstanceOf[Matrix]
     any.isInstanceOf[Matrix] && sameSizeOf(other) &&
-      forEach(i => j => other(i, j) == this(i, j), n).reduceLeft(_ && _)
+      forEachGeneric(i => j => other(i, j) == this(i, j), n).reduceLeft(_ && _)
   }
 
   override def toString = {
-    val x = matrix.size / n
-    ("-" * 40) + "\n" + matrix.sliding(x, x).map(_.mkString(", ")).mkString("\n")
+    lazy val formatter = new DecimalFormat("#.###")
+    ("-" * 40) + "\n" + matrix.sliding(n, n).map(formatter.format(_).mkString(", ")).mkString("\n")
   }
 
 }
@@ -68,12 +74,10 @@ object Matrix {
     else
       throw new RuntimeException("DIE!")
 
-  def apply(n: Int, optional: Double = 0.0) = new Matrix(
-    forEach(i => j => optional, n).toArray, n
-  )
+  def apply(n: Int, optional: Double = 0.0) = new Matrix(Array.fill(n * n)(optional), n)
 
   def apply(n: Int, f: ((Double, Double) => Double)) = new Matrix(
-    forEach(i => j => f(i, j), n).toArray, n
+    forEach(i => j => f(i, j), n), n
   )
 
   def apply(n: Int, t: Triple[Double, Double, Double]*) =
