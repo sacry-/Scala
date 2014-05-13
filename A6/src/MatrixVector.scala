@@ -1,4 +1,5 @@
 import java.text.DecimalFormat
+import scala.collection.SeqView
 import scala.util.Random
 
 /**
@@ -38,17 +39,12 @@ object StrassenMultiplication {
   }
 
   def add(v1: Vector[Double], v2: Vector[Double]) = {
-    v1.zip(v2).map {
-      case (l, r) => l + r
-    }
+   v1.zip(v2).map{case (l, r) => l + r}
   }
 
   def sub(v1: Vector[Double], v2: Vector[Double]) = {
-    v1.zip(v2).map {
-      case (l, r) => l - r
-    }
+    v1.zip(v2).map{case (l, r) => l - r}
   }
-
 
   def strassen(v1: Vector[Double], v2: Vector[Double]): Vector[Double] = {
     if (v1.size == 1 && v2.size == 1) {

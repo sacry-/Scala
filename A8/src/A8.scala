@@ -35,12 +35,12 @@ object A8 {
     def apply(x: Double) = math.sqrt(x)
   }
 
-  // 4 - Just Functors -> The naming! Gooooby please -.-
+  // 4 - Just Functors -> The naming!
   trait TypeCons[F[_]] {
     def fromAToFB[A, B](fa: F[A])(f: A => B): F[B]
   }
 
-  def listCons: TypeCons[List] = new TypeCons[List] {
+  def listCons: TypeCons[List[_]] = new TypeCons[List] {
     def fromAToFB[A, B](fa: List[A])(f: A => B) = fa.map(f)
   }
 
@@ -54,14 +54,15 @@ object A8 {
     println(sequenceOption(List(Some("Hallo"), Some("Welt"))))
 
     // 2
-    println(customers partition {
-      case Left(s) => true;
-      case _ => false
-    })
+    println(customers partition (_ isLeft))
+
+    println(customers flatMap (v => if (v isLeft) Some(v) else None))
     println(customers flatMap {
       case Left(x) => Some(x);
       case _ => None
     })
+
+    println(customers flatMap (v => if (v isRight) Some(v) else None))
     println(customers flatMap {
       case Right(x) => Some(x);
       case _ => None

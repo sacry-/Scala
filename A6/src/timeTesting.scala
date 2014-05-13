@@ -31,7 +31,7 @@ object Environment {
     val result = body
     val t = System.nanoTime - t0
 
-    println(result)
+    //println(result)
 
     val m = result.asInstanceOf[MatrixVector]
     val s = " for: " + m.n + "x" + m.n + " = " + m.size + " elements\n"
@@ -46,10 +46,15 @@ object Environment {
   }
 
   def main(args: Array[String]) {
-    val d = 1024
+    val d = 64
     val mat1 = MatrixVector(filledVector(d, 1000.0))
     val mat2 = MatrixVector(filledVector(d, 1000.0))
     execTime(mat1 ≈∞ mat2)
+    execTime(mat1 ≈∞ mat2)
+    val d1 = 256
+    val mat3 = MatrixVector(filledVector(d1, 1000.0))
+    val mat4 = MatrixVector(filledVector(d1, 1000.0))
+    execTime(mat3 ≈∞ mat4)
     //execTime(mat1 * mat2)
   }
 
