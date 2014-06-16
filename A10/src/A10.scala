@@ -1,5 +1,6 @@
 
 import scala.concurrent._
+import scala.concurrent.Future
 import scala.util.Try
 import ExecutionContext.Implicits.global
 
@@ -45,7 +46,7 @@ object A10SingleShareTry extends App {
   println(t)
 }
 
-object A10ManyShareTry extends App {
+object A10ManyShareTry /*extends App*/ {
 
   case class Share(shareId: String, curPrice: Double)
 
@@ -93,31 +94,41 @@ object A10Future extends App {
 
   class Broker {
     def shareInfo(shareId: String): Share =
-      if (shareId == "SAP") Share("SAP", 499.00) else throw new Exception("shareInfo")
+      MyUtil.exec(
+        "shareInfo", 100L,
+        if (shareId == "SAP") Share("SAP", 499.00) else throw new Exception("shareInfo"))
 
     def contract(order: Order): Order =
-      if (order.shareId == "SAP" && order.price >= 500) order
-      else throw new Exception("contract")
+      MyUtil.exec(
+        "contract", 200L,
+        if (order.shareId == "SAP" && order.price >= 500) order
+        else throw new Exception("contract"))
   }
 
   def connectToBroker(uri: String): Broker =
-    if (uri != "") new Broker else throw new Exception("connectToBroker")
+    MyUtil.exec(
+      "connectToBroker", 300L,
+      if (uri != "") new Broker else throw new Exception("connectToBroker"))
 
-  def makeOrder(share: Share, priceLimit: Double): Order =
+  def makeOrder(share: Share, priceLimit: Double): Order = MyUtil.exec(
+    "makeOrder", 500L,
     if (share.curPrice <= priceLimit)
       Order("SAP", priceLimit, 100)
     else
-      throw new Exception("makeOrder")
+      throw new Exception("makeOrder"))
 
-  def buyShares[F](brokerUri: String, shareIds: String*) = {
+  def buyShares[F](brokerUri: String, shareIds: String*): Future[Seq[Future[Order]]] = {
     for {
-      broker <- Try {
+      broker <- Future {
         connectToBroker(brokerUri)
       }
     } yield shareIds map (id => Future(broker.contract(makeOrder(broker.shareInfo(id), 500.0))))
   }
+  val res: Future[Seq[Future[Order]]] = buyShares("uri", "SAP", "SAP", "SA")
 
-  println(buyShares("uri", "SAP", "SAP"))
-  println(buyShares("", "SAP", "SAP"))
-  println(buyShares("uri", "SAP", "SAP", "SA"))
+  val result = for {
+    ls <- res
+  } yield ls.map(MyUtil.await(_).value.get)
+
+  MyUtil.await(result)
 }
