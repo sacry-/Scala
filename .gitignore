@@ -21,6 +21,7 @@ hs_err_pid*
 
 # Akka
 
+*/*/project/target/
 */project/target/
 */activator
 */activator.bat
