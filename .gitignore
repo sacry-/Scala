@@ -20,9 +20,8 @@
 hs_err_pid*
 
 # Akka
-*/project/boot
-*/project/build/target
-*/project/project.target.config-classes
+
+*/project/target/
 */activator
 */activator.bat
 */.target
