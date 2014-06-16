@@ -23,6 +23,7 @@ hs_err_pid*
 
 */*/project/target/
 */project/target/
+*/project/build.properties
 */activator
 */activator.bat
 */.target
