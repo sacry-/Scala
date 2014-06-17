@@ -1,6 +1,9 @@
 package amazonRobots
 
 import amazonRobots.Protocol.Position
+import amazonRobots.Simulation.Article
+
+import scala.util.Random
 
 /**
  * Created by sacry on 17/06/14.
@@ -31,7 +34,7 @@ case class OccupiedBlock(p: Position) extends Block {
   override def toString = "3"
 }
 
-case class Grid(positions: String) extends BlockOperations with GridConverter {
+class Grid(val positions: String) extends AbstractGrid with BlockOperations with GridConverter { self =>
 
   val grid: TGrid = fromStringToGrid(positions)
 
@@ -39,36 +42,56 @@ case class Grid(positions: String) extends BlockOperations with GridConverter {
     .map(_.map(_.toString).mkString(" ")
     ).mkString("\n")
 
-  def allOpenPositions(): List[Position] = {
+  def accessiblePositions(): List[Position] = {
     val openGrid: Array[Block] = grid.flatMap(_.filter(gridElem => isAccessible(gridElem.p)))
     openGrid.map(gridElem => gridElem.p).toList
   }
 
+  def neighbors(p:Position):List[Block] = {
+    List(grid(p.x+1)(p.y+1),grid(p.x+1)(p.y-1),grid(p.x-1)(p.y+1),grid(p.x-1)(p.y-1))
+  }
+
+  // for Article method
+  def accessibleNeighbors(p:Position): List[Position] = {
+    self.accessibleNeighbors(p).filter(isTraversable(_))
+  }
+
+  def newRobPosition: Position = {
+    val pos = Random.shuffle(self.accessiblePositions()).head
+    self.occupyPosition(pos)
+    pos
+  }
 }
 
-object Grid extends App {
-  val orderMaxSize = 50
-  val dlTime = 5
-}
 
 trait AbstractGrid {
   type TGrid = Array[Array[Block]]
-
   val grid: TGrid
 }
 
 trait BlockOperations extends AbstractGrid {
 
+  def blockAt(p:Position):Block = grid(p.x)(p.y)
+
   def isAccessible(p: Position): Boolean = {
-    grid(p.x)(p.y).isInstanceOf[Accessible]
+    blockAt(p).isInstanceOf[Accessible]
   }
 
   def isOccupied(p: Position): Boolean = {
-    grid(p.x)(p.y).isInstanceOf[OccupiedBlock]
+    blockAt(p).isInstanceOf[OccupiedBlock]
   }
 
   def isBlocked(p: Position): Boolean = {
-    !grid(p.x)(p.y).isInstanceOf[Accessible]
+    !blockAt(p).isInstanceOf[Accessible]
+  }
+
+  // is traversable heißt, dass der Block kein Lagerort
+  // und auch keine Packstation ist. Der Block ist derzeit entweder frei,
+  // oder von einem anderen Roboter besetzt.
+  // (Vielleicht sollten wir die Benennugn von Traversable und Accessible vertauschen.)
+  // Derzeit heißt accessible, dass man diesen Grid auch tatsächlich befahren könnte.
+  def isTraversable(p:Position) = {
+    isAccessible(p) || isOccupied(p)
   }
 
   def occupyPosition(p: Position): Boolean = {
