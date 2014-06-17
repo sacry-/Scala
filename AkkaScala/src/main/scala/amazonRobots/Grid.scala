@@ -47,13 +47,16 @@ class Grid(val positions: String) extends AbstractGrid with BlockOperations with
     openGrid.map(gridElem => gridElem.p).toList
   }
 
-  def neighbors(p:Position):List[Block] = {
-    List(grid(p.x+1)(p.y+1),grid(p.x+1)(p.y-1),grid(p.x-1)(p.y+1),grid(p.x-1)(p.y-1))
+  def neighbors(p:Position):List[Position] = {
+    def inBounds(t:Int) = 0 <= t && t < grid.size
+    List((p.x+1, p.y+1),(p.x+1, p.y-1),(p.x-1, p.y+1),(p.x-1, p.y-1))
+      .filter( t => inBounds(t._1) && inBounds(t._2) )
+      .map(t => Position(t._1,t._2))
   }
 
   // for Article method
   def accessibleNeighbors(p:Position): List[Position] = {
-    self.accessibleNeighbors(p).filter(isTraversable(_))
+    self.neighbors(p).filter(isTraversable(_))
   }
 
   def newRobPosition: Position = {
