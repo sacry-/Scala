@@ -9,27 +9,15 @@ import amazonRobots.Protocol.Position
  */
 object Main {
 
-  val system = ActorSystem()
-  val numRobots = 6
-  val positions = "1110011,0011001,0011001,1011001,1011001,0000000,0022200"
-  val grid = Grid(positions)
+  def main(args: Array[String]): Unit = swaneet_run()
 
-  def placeRobotOnOpenPosition: Position = {
-    val pos = Random.shuffle(grid.allOpenPositions).head
-    grid.occupyPosition(pos)
-    pos
-  }
+  def swaneet_run() = {
 
-  def main(args: Array[String]): Unit = run()
+    val siml = new Simulation("1110011,0011001,0011001,1011001,1011001,0000000,0022200", verbose = false)
 
-  def run(): Unit = {
-    println(grid)
+    siml.run(4000) // runs 4000 millis in the simulation
 
-    val robots = for (i <- 1 to numRobots)
-    yield system.actorOf(Props(classOf[Robot], ("Robot" + i),
-        placeRobotOnOpenPosition))
+    // println(siml.grid)
 
-    robots.foreach(println)
-    println(grid)
   }
 }
