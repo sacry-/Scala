@@ -13,7 +13,7 @@ object Main {
 
   def swaneet_run() = {
 
-    val siml = new Simulation("1110011,0011001,0011001,1011001,1011001,0000000,0022200", verbose = false)
+    val siml = new Simulation("1110011,0011001,0011001,1011001,1011001,0000000,0022200", verbose = true)
 
     siml.run(4000) // runs 4000 millis in the simulation
 
