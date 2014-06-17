@@ -34,10 +34,36 @@ case class OccupiedGrid(p: Position) extends GridElement {
   override def toString = "3"
 }
 
-
-case class Grid(positions: String) {
-
+trait AbstractGrid {
   type TGrid = Array[Array[GridElement]]
+
+  val grid: TGrid
+}
+
+trait GridOperations extends AbstractGrid {
+
+  def isAccessible(p: Position): Boolean = {
+    grid(p.x)(p.y).isInstanceOf[Accessible]
+  }
+
+  def isOccupied(p: Position): Boolean = {
+    grid(p.x)(p.y).isInstanceOf[OccupiedGrid]
+  }
+
+  def occupyPosition(p: Position) {
+    if (isAccessible(p)) {
+      grid(p.x).update(p.y, OccupiedGrid(p))
+    }
+  }
+
+  def leavePosition(p: Position) {
+    if (isOccupied(p)) {
+      grid(p.x).update(p.y, EmptyGrid(p))
+    }
+  }
+}
+
+case class Grid(positions: String) extends GridOperations with GridConverter {
 
   val grid: TGrid = fromStringToGrid(positions)
 
@@ -45,15 +71,20 @@ case class Grid(positions: String) {
     .map(_.map(_.toString).mkString(" ")
     ).mkString("\n")
 
-  def isEmptyGrid(p: Position): Boolean = {
-    grid(p.x)(p.y).isInstanceOf[EmptyGrid]
+  def allOpenPositions(): List[Position] = {
+    val openGrid: Array[GridElement] = grid.flatMap(_.filter(_.isInstanceOf[EmptyGrid]))
+    openGrid.map(g => g.p).toList
   }
 
-  def occupyPosition(p: Position) {
-    if (isEmptyGrid(p)) {
-      grid(p.x).update(p.y, OccupiedGrid(p))
-    }
-  }
+}
+
+object Grid extends App {
+  val orderMaxSize = 50
+  val dlTime = 5
+}
+
+
+trait GridConverter extends AbstractGrid {
 
   def fromStringToGrid(s: String): TGrid = {
     val rows: Array[String] = s.split(",")
@@ -86,13 +117,4 @@ case class Grid(positions: String) {
     }.mkString(",")
   }
 
-  def allOpenPositions(): List[Position] = {
-    val openGrid: Array[GridElement] = grid.flatMap(_.filter(_.isInstanceOf[EmptyGrid]))
-    openGrid.map(g => g.p).toList
-  }
-}
-
-object Grid extends App {
-  val orderMaxSize = 50
-  val dlTime = 5
 }
