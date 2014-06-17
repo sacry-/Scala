@@ -9,9 +9,7 @@ import amazonRobots.Protocol.Position
  */
 object Main {
 
-  def main(args: Array[String]): Unit = swaneet_run()
-
-  def swaneet_run() = {
+  def main(args: Array[String]) = {
 
     val siml = new Simulation("1110011,0011001,0011001,1011001,1011001,0000000,0022200", verbose = true)
 
