@@ -31,7 +31,7 @@ case class OccupiedBlock(p: Position) extends Block {
   override def toString = "3"
 }
 
-case class Grid(positions: String) extends GridOperations with GridConverter {
+case class Grid(positions: String) extends BlockOperations with GridConverter {
 
   val grid: TGrid = fromStringToGrid(positions)
 
@@ -57,7 +57,7 @@ trait AbstractGrid {
   val grid: TGrid
 }
 
-trait GridOperations extends AbstractGrid {
+trait BlockOperations extends AbstractGrid {
 
   def isAccessible(p: Position): Boolean = {
     grid(p.x)(p.y).isInstanceOf[Accessible]
@@ -65,6 +65,10 @@ trait GridOperations extends AbstractGrid {
 
   def isOccupied(p: Position): Boolean = {
     grid(p.x)(p.y).isInstanceOf[OccupiedBlock]
+  }
+
+  def isBlocked(p: Position): Boolean = {
+    !grid(p.x)(p.y).isInstanceOf[Accessible]
   }
 
   def occupyPosition(p: Position): Boolean = {
