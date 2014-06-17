@@ -67,16 +67,28 @@ trait GridOperations extends AbstractGrid {
     grid(p.x)(p.y).isInstanceOf[OccupiedBlock]
   }
 
-  def occupyPosition(p: Position) {
-    if (isAccessible(p)) {
+  def occupyPosition(p: Position): Boolean = {
+    val accessible = isAccessible(p)
+    if (accessible) {
       grid(p.x).update(p.y, OccupiedBlock(p))
     }
+    accessible
   }
 
   def leavePosition(p: Position) {
-    if (isOccupied(p)) {
+    val occupied = isOccupied(p)
+    if (occupied) {
       grid(p.x).update(p.y, EmptyBlock(p))
     }
+    occupied
+  }
+
+  def move(source: Position, target: Position) {
+    val accessible = occupyPosition(target)
+    if (accessible)
+      leavePosition(source)
+    else
+      accessible
   }
 }
 
