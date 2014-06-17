@@ -6,7 +6,7 @@ import akka.actor.Actor
 /**
  * Created by sacry on 17/06/14.
  */
-class Robot(p2: Position) extends Actor {
+class Robot(name: String, p2: Position) extends Actor {
 
   def shortestPath(p1: Position) = ???
 

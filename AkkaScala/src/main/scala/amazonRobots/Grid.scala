@@ -5,7 +5,15 @@ import amazonRobots.Protocol.Position
 /**
  * Created by sacry on 17/06/14.
  */
-sealed trait GridElement
+trait GridElement {
+  def p: Position
+
+  def x: Int = p.x
+
+  def y: Int = p.y
+
+  def x_y: (Int, Int) = (x, y)
+}
 
 sealed trait Accessible
 
@@ -67,13 +75,14 @@ case class Grid(positions: String) {
         }.mkString("")
     }.mkString(",")
   }
+
+  def allOpenPositions(): List[Position] = {
+    val openGrid: Array[GridElement] = grid.flatMap(_.filter(_.isInstanceOf[EmptyGrid]))
+    openGrid.map(g => g.p).toList
+  }
 }
 
 object Grid extends App {
-  val positions = "1110011,0011001,0011001,1011001,1011001,0000000,0022200"
-  val numRobots = 6
   val orderMaxSize = 50
   val dlTime = 5
-  println(Grid(positions))
-  println(Grid(positions).fromGridToString)
 }
