@@ -1,66 +1,34 @@
 package amazonRobots
 
 import amazonRobots.Protocol.Position
-import akka.actor.ActorRef
 
 /**
  * Created by sacry on 17/06/14.
  */
-trait GridElement {
+trait Block {
   def p: Position
 
   def x: Int = p.x
 
   def y: Int = p.y
-
-  def x_y: (Int, Int) = (x, y)
 }
 
 sealed trait Accessible
 
-case class EmptyGrid(p: Position) extends GridElement with Accessible {
+case class EmptyBlock(p: Position) extends Block with Accessible {
   override def toString = "0"
 }
 
-case class WareGrid(p: Position, article: Option[Article]) extends GridElement {
+case class WareBlock(p: Position, article: Option[Article]) extends Block {
   override def toString = "1"
 }
 
-case class PackGrid(p: Position) extends GridElement {
+case class PackBlock(p: Position) extends Block {
   override def toString = "2"
 }
 
-case class OccupiedGrid(p: Position) extends GridElement {
+case class OccupiedBlock(p: Position) extends Block {
   override def toString = "3"
-}
-
-trait AbstractGrid {
-  type TGrid = Array[Array[GridElement]]
-
-  val grid: TGrid
-}
-
-trait GridOperations extends AbstractGrid {
-
-  def isAccessible(p: Position): Boolean = {
-    grid(p.x)(p.y).isInstanceOf[Accessible]
-  }
-
-  def isOccupied(p: Position): Boolean = {
-    grid(p.x)(p.y).isInstanceOf[OccupiedGrid]
-  }
-
-  def occupyPosition(p: Position) {
-    if (isAccessible(p)) {
-      grid(p.x).update(p.y, OccupiedGrid(p))
-    }
-  }
-
-  def leavePosition(p: Position) {
-    if (isOccupied(p)) {
-      grid(p.x).update(p.y, EmptyGrid(p))
-    }
-  }
 }
 
 case class Grid(positions: String) extends GridOperations with GridConverter {
@@ -72,8 +40,8 @@ case class Grid(positions: String) extends GridOperations with GridConverter {
     ).mkString("\n")
 
   def allOpenPositions(): List[Position] = {
-    val openGrid: Array[GridElement] = grid.flatMap(_.filter(_.isInstanceOf[EmptyGrid]))
-    openGrid.map(g => g.p).toList
+    val openGrid: Array[Block] = grid.flatMap(_.filter(gridElem => isAccessible(gridElem.p)))
+    openGrid.map(gridElem => gridElem.p).toList
   }
 
 }
@@ -83,16 +51,43 @@ object Grid extends App {
   val dlTime = 5
 }
 
+trait AbstractGrid {
+  type TGrid = Array[Array[Block]]
+
+  val grid: TGrid
+}
+
+trait GridOperations extends AbstractGrid {
+
+  def isAccessible(p: Position): Boolean = {
+    grid(p.x)(p.y).isInstanceOf[Accessible]
+  }
+
+  def isOccupied(p: Position): Boolean = {
+    grid(p.x)(p.y).isInstanceOf[OccupiedBlock]
+  }
+
+  def occupyPosition(p: Position) {
+    if (isAccessible(p)) {
+      grid(p.x).update(p.y, OccupiedBlock(p))
+    }
+  }
+
+  def leavePosition(p: Position) {
+    if (isOccupied(p)) {
+      grid(p.x).update(p.y, EmptyBlock(p))
+    }
+  }
+}
 
 trait GridConverter extends AbstractGrid {
-
   def fromStringToGrid(s: String): TGrid = {
     val rows: Array[String] = s.split(",")
-    def fromCharToGridElem(i: Int, j: Int, c: Char): GridElement = c match {
-      case '0' => EmptyGrid(Position(i, j))
-      case '1' => WareGrid(Position(i, j), None)
-      case '2' => PackGrid(Position(i, j))
-      case '3' => OccupiedGrid(Position(i, j))
+    def fromCharToGridElem(i: Int, j: Int, c: Char): Block = c match {
+      case '0' => EmptyBlock(Position(i, j))
+      case '1' => WareBlock(Position(i, j), None)
+      case '2' => PackBlock(Position(i, j))
+      case '3' => OccupiedBlock(Position(i, j))
     }
     rows.zipWithIndex.map {
       case (row, i) => row.zipWithIndex
@@ -103,11 +98,11 @@ trait GridConverter extends AbstractGrid {
   }
 
   def fromGridToString(): String = {
-    def fromGridElemToChar(g: GridElement): Char = g match {
-      case e: EmptyGrid => '0'
-      case w: WareGrid => '1'
-      case p: PackGrid => '2'
-      case o: OccupiedGrid => '3'
+    def fromGridElemToChar(g: Block): Char = g match {
+      case e: EmptyBlock => '0'
+      case w: WareBlock => '1'
+      case p: PackBlock => '2'
+      case o: OccupiedBlock => '3'
     }
     grid.map {
       case gridElemArray =>
