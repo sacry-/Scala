@@ -29,7 +29,7 @@ case class OccupiedGrid(p: Position, actor: ActorRef) extends GridElement {
 
 case class Grid(positions: String) {
 
-  import amazonRobots.Grid._
+  type TGrid = Array[Array[GridElement]]
 
   val grid: TGrid = fromStringToGrid(positions)
 
@@ -71,11 +71,10 @@ case class Grid(positions: String) {
 }
 
 object Grid extends App {
-  type TGrid = Array[Array[GridElement]]
   val positions = "1110011,0011001,0011001,1011001,1011001,0000000,0022200"
   val numRobots = 6
   val orderMaxSize = 50
   val dlTime = 5
   println(Grid(positions))
-  println(Grid(positions).fromGridToString())
+  println(Grid(positions).fromGridToString)
 }
