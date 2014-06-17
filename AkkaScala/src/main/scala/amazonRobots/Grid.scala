@@ -1,7 +1,6 @@
 package amazonRobots
 
 import amazonRobots.Protocol.Position
-import akka.actor.ActorRef
 
 /**
  * Created by sacry on 17/06/14.
@@ -22,7 +21,7 @@ case class PackGrid(p: Position) extends GridElement {
   override def toString = "2"
 }
 
-case class OccupiedGrid(p: Position, actor: ActorRef) extends GridElement {
+case class OccupiedGrid(p: Position) extends GridElement {
   override def toString = "3"
 }
 
@@ -34,37 +33,37 @@ case class Grid(positions: String) {
   val grid: TGrid = fromStringToGrid(positions)
 
   override def toString = ("-" * 40) + "\n" + grid
-    .map(_
-    .map(_.toString).mkString(" ")
+    .map(_.map(_.toString).mkString(" ")
     ).mkString("\n")
 
 
   def fromStringToGrid(s: String): TGrid = {
     val rows: Array[String] = s.split(",")
-    def f(i: Int, j: Int, c: Char): GridElement = c match {
+    def fromCharToGridElem(i: Int, j: Int, c: Char): GridElement = c match {
       case '0' => EmptyGrid(Position(i, j))
       case '1' => WareGrid(Position(i, j), None)
       case '2' => PackGrid(Position(i, j))
+      case '3' => OccupiedGrid(Position(i, j))
     }
     rows.zipWithIndex.map {
       case (row, i) => row.zipWithIndex
         .map {
-        case (character, j) => f(i, j, character)
+        case (character, j) => fromCharToGridElem(i, j, character)
       }.toArray
     }
   }
 
   def fromGridToString(): String = {
-    def f(g: GridElement): Char = g match {
+    def fromGridElemToChar(g: GridElement): Char = g match {
       case e: EmptyGrid => '0'
       case w: WareGrid => '1'
       case p: PackGrid => '2'
       case o: OccupiedGrid => '3'
     }
     grid.map {
-      case gridArray =>
-        gridArray.map {
-          case gridElem => f(gridElem)
+      case gridElemArray =>
+        gridElemArray.map {
+          case gridElem => fromGridElemToChar(gridElem)
         }.mkString("")
     }.mkString(",")
   }
