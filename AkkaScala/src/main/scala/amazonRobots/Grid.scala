@@ -1,6 +1,7 @@
 package amazonRobots
 
 import amazonRobots.Protocol.Position
+import akka.actor.ActorRef
 
 /**
  * Created by sacry on 17/06/14.
@@ -44,6 +45,15 @@ case class Grid(positions: String) {
     .map(_.map(_.toString).mkString(" ")
     ).mkString("\n")
 
+  def isEmptyGrid(p: Position): Boolean = {
+    grid(p.x)(p.y).isInstanceOf[EmptyGrid]
+  }
+
+  def occupyPosition(p: Position) {
+    if (isEmptyGrid(p)) {
+      grid(p.x).update(p.y, OccupiedGrid(p))
+    }
+  }
 
   def fromStringToGrid(s: String): TGrid = {
     val rows: Array[String] = s.split(",")

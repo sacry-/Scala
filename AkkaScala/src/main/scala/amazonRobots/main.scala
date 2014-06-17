@@ -14,16 +14,22 @@ object Main {
   val positions = "1110011,0011001,0011001,1011001,1011001,0000000,0022200"
   val grid = Grid(positions)
 
+  def placeRobotOnOpenPosition: Position = {
+    val pos = Random.shuffle(grid.allOpenPositions).head
+    grid.occupyPosition(pos)
+    pos
+  }
+
   def main(args: Array[String]): Unit = run()
 
   def run(): Unit = {
     println(grid)
 
-    def eraseOpen: Position = {
-      Random.shuffle(grid.allOpenPositions).head
-    }
+    val robots = for (i <- 1 to numRobots)
+    yield system.actorOf(Props(classOf[Robot], ("Robot" + i),
+        placeRobotOnOpenPosition))
 
-    val robots = for (i <- 1 to numRobots) yield system.actorOf(Props(classOf[Robot], ("Robot" + i), eraseOpen))
     robots.foreach(println)
+    println(grid)
   }
 }
