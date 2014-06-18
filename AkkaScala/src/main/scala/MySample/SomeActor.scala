@@ -1,15 +1,10 @@
 package MySample
 
-import scala.concurrent.{ExecutionContext, Await, Future}
+import scala.concurrent.{Await, ExecutionContext}
 import ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import akka.actor._
-import akka.event.Logging
 import akka.pattern.{ask, pipe}
-import akka.util._
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration.Duration
-import akka.actor.FSM.Failure
 import akka.util.Timeout
 
 /**
@@ -17,41 +12,67 @@ import akka.util.Timeout
  */
 object DemoActor extends App {
   val system = ActorSystem("mySystem")
-  val actor1 = system.actorOf(Props(classOf[DemoActor], 6, 0))
-  val actor2 = system.actorOf(Props(classOf[DemoActor], 3, 1))
-  val actor3 = system.actorOf(Props(classOf[DemoActor], 23, 2))
-  val actor4 = system.actorOf(Props(classOf[DemoActor], 34, 3))
+  val numActors = 4
+  implicit val timeout = Timeout(5 seconds)
 
-  val actors = List(actor1,actor2,actor3,actor4)
+  for (i <- 0 until numActors) yield system.actorOf(Props(classOf[DemoActor], util.Random.nextInt(50), i), s"demo$i")
 
-  //actor1 ! 0
-  actor1.tell(0, system.deadLetters)
+  def actorByName(id: Int): ActorRef = {
+    val Fut = system.actorSelection(system./("demo" + id)).resolveOne()
+    Await.result(Fut, 5 seconds)
+  }
 
-  Thread.sleep(600)
-  system.shutdown()
+  //actorByName(0) ! 0
 
-  def nextActor(n:Int):ActorRef = {
-    actors( (n + 1) % actors.size )
+  system.actorOf(Props(classOf[Asker], system)) ! "Fib"
+}
+
+class Asker(system: ActorSystem) extends Actor {
+  def receive = {
+    case "Fib" => DemoActor.actorByName(0) !(0L, 1L, 40)
+    case res: Long => println("Final: " + res); system.shutdown()
   }
 }
 
-class DemoActor(magicNumber: Int, id:Int) extends Actor {
+class DemoActor(magicNumber: Int, id: Int) extends Actor {
   implicit val timeout = Timeout(5 seconds)
+
   import DemoActor._
+
+  def nextActor(id: Int) = {
+    val name = self.path.name
+    val n = name.charAt(name.length - 1).toInt
+    actorByName((n + 1) % numActors)
+  }
+
   def receive = {
-    case x:Int if x > 4000 => {
+    case (a: Long, b: Long, n: Int) => {
+      println(id + ": " + b)
+      Thread.sleep(50)
+      if (n > 0) {
+        nextActor(id)
+          .ask((b, a + b, n - 1))
+          .pipeTo(sender())
+      }
+      else {
+        sender() ! b
+      }
+    }
+    case x: Int if x > 4000 => {
       val s = "Finished with " + x
       println(s)
       sender() ! s
     }
     case x: Int => {
       println(id + ": " + x)
-      Thread.sleep(10);
-      val resp = nextActor(id) ask (x + magicNumber)
-      resp map { x => { val s = id + x.toString; println(s); s } } pipeTo ( sender() )
+      //println(id + ", " + self.path + ": " + x)
+      Thread.sleep(1);
+      nextActor(id) ask (x + magicNumber) map {
+        x => println(id + ", " + self.path + ": " + x); x
+      } pipeTo (sender())
     }
     case _ => {
-      println(id +": unknown")
+      println(id + ": unknown")
     }
   }
 }
