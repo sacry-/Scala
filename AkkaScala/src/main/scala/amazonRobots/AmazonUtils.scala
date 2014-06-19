@@ -17,6 +17,10 @@ object AmazonUtils {
     )
   }
 
+  def randomPosition(g:Grid, p:Position):Position = {
+    g.traversableNeighbors(p).head
+  }
+
   def orders(g:Grid) = {
     List(
       Order(articles(g)),

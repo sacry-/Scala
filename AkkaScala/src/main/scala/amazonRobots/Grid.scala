@@ -30,8 +30,8 @@ case class PackBlock(p: Position) extends Block {
   override def toString = "2"
 }
 
-case class OccupiedBlock(p: Position) extends Block {
-  override def toString = "3"
+case class OccupiedBlock(p: Position, c:Char) extends Block {
+  override def toString = c.toString
 }
 
 case class Grid(val positions: String) extends AbstractGrid with BlockOperations with GridConverter { self =>
@@ -49,19 +49,24 @@ case class Grid(val positions: String) extends AbstractGrid with BlockOperations
 
   def neighbors(p:Position):List[Position] = {
     def inBounds(t:Int) = 0 <= t && t < grid.size
-    List((p.x+1, p.y+1),(p.x+1, p.y-1),(p.x-1, p.y+1),(p.x-1, p.y-1))
+    List((p.x+1, p.y),(p.x-1, p.y),(p.x, p.y+1),(p.x, p.y-1))
       .filter( t => inBounds(t._1) && inBounds(t._2) )
       .map(t => Position(t._1,t._2))
   }
 
   // for Article method
-  def accessibleNeighbors(p:Position): List[Position] = {
+  def traversableNeighbors(p:Position): List[Position] = {
     self.neighbors(p).filter(isTraversable(_))
   }
 
-  def newRobPosition: Position = {
+  // for Article method
+  def accessibleNeighbors(p:Position): List[Position] = {
+    self.neighbors(p).filter(isAccessible(_))
+  }
+
+  def newRobPosition(c:Char): Position = {
     val pos = Random.shuffle(self.accessiblePositions()).head
-    self.occupyPosition(pos)
+    self.occupyPosition(pos, c)
     pos
   }
 }
@@ -97,10 +102,10 @@ trait BlockOperations extends AbstractGrid {
     isAccessible(p) || isOccupied(p)
   }
 
-  def occupyPosition(p: Position): Boolean = {
+  def occupyPosition(p: Position, c:Char): Boolean = {
     val accessible = isAccessible(p)
     if (accessible) {
-      grid(p.x).update(p.y, OccupiedBlock(p))
+      grid(p.x).update(p.y, OccupiedBlock(p,c))
     }
     accessible
   }
@@ -113,8 +118,9 @@ trait BlockOperations extends AbstractGrid {
     occupied
   }
 
-  def move(source: Position, target: Position): Boolean = {
-    val accessible = occupyPosition(target)
+  def move(source: Position, target: Position, c:Char): Boolean = {
+    println(s"move($source, $target, $c")
+    val accessible = occupyPosition(target, c)
     if (accessible)
       leavePosition(source)
     else
@@ -129,7 +135,7 @@ trait GridConverter extends AbstractGrid {
       case '0' => EmptyBlock(Position(i, j))
       case '1' => WareBlock(Position(i, j), None)
       case '2' => PackBlock(Position(i, j))
-      case '3' => OccupiedBlock(Position(i, j))
+      case '3' => OccupiedBlock(Position(i, j), '3')
     }
     rows.zipWithIndex.map {
       case (row, i) => row.zipWithIndex

@@ -26,6 +26,7 @@ class Robot(val initPos: Position, val grid:Grid) extends Actor {
     }
     case Ask => sender() ! pos
     case p:Position => println(sender()+ " is at " + p)
+    case Move => currPos = AmazonUtils.randomPosition(grid,pos)
 
     case "Hello!" => println(name + " thinks \"fu\"" ); sender() ! name
   }

@@ -17,5 +17,6 @@ object Protocol {
   // case object UpdatePosition extends GUI
   case object Update extends GUI
 
+  case object Move
 
 }

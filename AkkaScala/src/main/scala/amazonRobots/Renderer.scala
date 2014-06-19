@@ -12,6 +12,7 @@ class Renderer(g:Grid, ls:List[ActorRef]) extends Actor {
   def receive = {
     case Update => {
       ls foreach( ref => ref ! Ask )
+      ls(1) ! Move
       println(g)
     }
     case p@Position(x,y) => {
@@ -21,9 +22,10 @@ class Renderer(g:Grid, ls:List[ActorRef]) extends Actor {
       lazy val oldPos = maybeOldPos.get
       maybeOldPos match {
         case None => positions.put(actor, p)
-        case Some(`oldPos`) => ()
-        case Some(newPos) => {
-          g.move(oldPos,newPos) // böse
+        case Some(`p`) => ()
+        case Some(oldPos) => {
+          g.move(oldPos,p, actor.path.name.charAt(1)) // böse
+          positions.put(actor, p)
         }
       }
     }

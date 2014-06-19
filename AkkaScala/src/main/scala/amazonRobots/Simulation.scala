@@ -26,16 +26,12 @@ class Simulation(
   val robots:List[ActorRef] =
     (0 until numRobots).map{ i:Int =>
       // create the robots. give them their id, a new position and a map of the grid
-      system.actorOf(Props(classOf[Robot], realWorld.newRobPosition, staticGrid))
+      system.actorOf(Props(classOf[Robot], realWorld.newRobPosition((i + 'a').toChar), staticGrid))
     }.toList
 
-  robots(0) ! "find others"
+  // robots(0) ! "find others"
 
   val renderer = system.actorOf(Props(classOf[Renderer], realWorld, robots))
-
-
-  //if (verbose) robots.foreach(println)
-  //if (verbose) println(s"Occupied Grid: $realWorld")
 
   // es können die Artikel und Orders erzeugt werden.
   val articles = AmazonUtils.articles(realWorld)
@@ -48,6 +44,7 @@ class Simulation(
     // decrementing remaining time of (un)loading articles.
   }
 
+  // regularly update GUI
   import scala.concurrent.duration._
   system.scheduler.schedule(0 milliseconds, 1 seconds, renderer, Update)
 
