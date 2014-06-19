@@ -7,6 +7,7 @@ import amazonRobots.Protocol.Position
  */
 object AmazonUtils {
 
+  val dlTime = 5000L
 
   def articles(g:Grid):List[Article] = {
     List(
@@ -16,5 +17,19 @@ object AmazonUtils {
     )
   }
 
+  def orders(g:Grid) = {
+    List(
+      Order(articles(g)),
+      Order(List(articles(g)(2),articles(g)(1))),
+      Order(List(articles(g)(0)))
+    )
+  }
+
   case class Article(productSize: Int, name: String, productPos: Position)
+
+  case class Order(articles: List[Article]) {
+    val size = articles.map(_.productSize).sum
+    val numProducts = articles.size
+    val unloadTime = numProducts * dlTime
+  }
 }

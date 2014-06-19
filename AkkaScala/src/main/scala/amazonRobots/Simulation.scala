@@ -12,7 +12,6 @@ class Simulation(
                  val gridString: String,
                  val numRobots: Int = 6,
                  val orderMaxSize: Int = 50,
-                 val dlTime: Long = 5000L,
                  val verbose: Boolean = false)  // schade, dass man dieses "verbose" nicht implicit machen kann...
 {
 
@@ -35,13 +34,13 @@ class Simulation(
   val renderer = system.actorOf(Props(classOf[Renderer], realWorld, robots))
 
 
-  if (verbose) robots.foreach(println)
-  if (verbose) println(s"Occupied Grid: $realWorld")
+  //if (verbose) robots.foreach(println)
+  //if (verbose) println(s"Occupied Grid: $realWorld")
 
   // es können die Artikel und Orders erzeugt werden.
   val articles = AmazonUtils.articles(realWorld)
 
-  // val sampleOrder = new Order(List(art1,art2,art3),dlTime)
+  val orders = AmazonUtils.orders(realWorld)
 
   def run(ms: Long) = {
     // here Code that runs "ms" milliseconds of the virtual world
@@ -54,14 +53,6 @@ class Simulation(
 
 }
 
-object Simulation {
-  case class Order(articles: List[Article], dlTime:Long) {
-    val size = articles.map(_.productSize).sum
-    val numProducts = articles.size
-    val unloadTime = numProducts * dlTime
-    override def toString = "Order("+articles.toString+")"
-  }
+//def whereCanIGetYou: List[Position] = grid.accessibleNeighbors(productPos)
 
-    //def whereCanIGetYou: List[Position] = grid.accessibleNeighbors(productPos)
-}
 
