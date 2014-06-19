@@ -8,7 +8,14 @@ import akka.actor.ActorRef
 object Protocol {
 
   sealed trait Message
-  case class Position(x: Int, y: Int) extends Message
-  case class NextPosition(x:Int, y:Int) extends  Message
-  case class Target(x:Int, y:Int) extends  Message
+  case object Ask extends Message
+  case class Position(x:Int, y:Int) extends Message
+
+
+  // ========================================================
+  sealed trait GUI
+  // case object UpdatePosition extends GUI
+  case object Update extends GUI
+
+
 }
