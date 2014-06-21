@@ -1,55 +1,47 @@
 package amazonRobots
 
 import akka.actor.{ActorRef, Props, ActorSystem}
-import amazonRobots.Protocol.{Update, Position}
+import amazonRobots.Protocol.{Update}
 import scala.concurrent.ExecutionContext.Implicits.global
-import AmazonUtils._
+import RobotsRepository._
 
 /**
  * Created by Swaneet on 17.06.2014.
  */
-class Simulation(
-                 val gridString: String,
-                 val numRobots: Int = 6,
-                 val orderMaxSize: Int = 50,
-                 val verbose: Boolean = false)  // schade, dass man dieses "verbose" nicht implicit machen kann...
-{
+object Simulation {
+  def apply(gridString: String, numRobots: Int = 6, orderMaxSize: Int = 50, verbose: Boolean = false) =
+    new Simulation(gridString, numRobots, orderMaxSize, verbose)
+}
 
 
-  // initialization
+class Simulation(gridString: String, numRobots: Int, orderMaxSize: Int, verbose: Boolean) {
+
   val system = ActorSystem("NaSC")
-  val realWorld = Grid(gridString) // changing grid
+  val realWorld = Grid(gridString)
   val staticGrid = Grid(gridString)
+
   if (verbose) println(s"Initial grid: $realWorld")
 
-  // insert robots
-  val robots:List[ActorRef] =
-    (0 until numRobots).map{ i:Int =>
-      // create the robots. give them their id, a new position and a map of the grid
-      system.actorOf(Props(classOf[Robot], realWorld.newRobPosition((i + 'a').toChar), staticGrid))
-    }.toList
-
-  // robots(0) ! "find others"
+  val robots: List[ActorRef] =
+    generateRobotNames(numRobots).map(c =>
+      system.actorOf(Props(classOf[Robot], realWorld.newRobPosition(c), staticGrid))
+    ).toList
 
   val renderer = system.actorOf(Props(classOf[Renderer], realWorld, robots))
 
-  // es können die Artikel und Orders erzeugt werden.
-  val articles = AmazonUtils.articles(realWorld)
-
-  val orders = AmazonUtils.orders(realWorld)
+  val articles = RobotsRepository.articles(realWorld)
+  val orders = RobotsRepository.orders(realWorld)
 
   def run(ms: Long) = {
-    // here Code that runs "ms" milliseconds of the virtual world
-    // changing positions of robots, if the 5s of changing is elapsed
-    // decrementing remaining time of (un)loading articles.
+
   }
 
-  // regularly update GUI
   import scala.concurrent.duration._
+
   system.scheduler.schedule(0 milliseconds, 1 seconds, renderer, Update)
 
-}
+  // robots(0) ! "find others"
 
-//def whereCanIGetYou: List[Position] = grid.accessibleNeighbors(productPos)
+}
 
 

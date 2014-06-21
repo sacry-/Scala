@@ -1,7 +1,7 @@
 package amazonRobots
 
 import amazonRobots.Protocol.Position
-import AmazonUtils._
+import RobotsRepository._
 
 import scala.util.Random
 
@@ -42,7 +42,7 @@ case class Grid(val positions: String) extends AbstractGrid with BlockOperations
     .map(_.map(_.toString).mkString(" ")
     ).mkString("\n")
 
-  def accessiblePositions(): List[Position] = {
+  def accessiblePositions: List[Position] = {
     val openGrid: Array[Block] = grid.flatMap(_.filter(gridElem => isAccessible(gridElem.p)))
     openGrid.map(gridElem => gridElem.p).toList
   }
@@ -54,18 +54,16 @@ case class Grid(val positions: String) extends AbstractGrid with BlockOperations
       .map(t => Position(t._1,t._2))
   }
 
-  // for Article method
   def traversableNeighbors(p:Position): List[Position] = {
     self.neighbors(p).filter(isTraversable(_))
   }
 
-  // for Article method
   def accessibleNeighbors(p:Position): List[Position] = {
     self.neighbors(p).filter(isAccessible(_))
   }
 
   def newRobPosition(c:Char): Position = {
-    val pos = Random.shuffle(self.accessiblePositions()).head
+    val pos = Random.shuffle(self.accessiblePositions).head
     self.occupyPosition(pos, c)
     pos
   }
@@ -93,11 +91,6 @@ trait BlockOperations extends AbstractGrid {
     !blockAt(p).isInstanceOf[Accessible]
   }
 
-  // is traversable heißt, dass der Block kein Lagerort
-  // und auch keine Packstation ist. Der Block ist derzeit entweder frei,
-  // oder von einem anderen Roboter besetzt.
-  // (Vielleicht sollten wir die Benennugn von Traversable und Accessible vertauschen.)
-  // Derzeit heißt accessible, dass man diesen Grid auch tatsächlich befahren könnte.
   def isTraversable(p:Position) = {
     isAccessible(p) || isOccupied(p)
   }
@@ -135,7 +128,7 @@ trait GridConverter extends AbstractGrid {
       case '0' => EmptyBlock(Position(i, j))
       case '1' => WareBlock(Position(i, j), None)
       case '2' => PackBlock(Position(i, j))
-      case '3' => OccupiedBlock(Position(i, j), '3')
+      case c: Char => OccupiedBlock(Position(i, j), c)
     }
     rows.zipWithIndex.map {
       case (row, i) => row.zipWithIndex
@@ -150,7 +143,7 @@ trait GridConverter extends AbstractGrid {
       case e: EmptyBlock => '0'
       case w: WareBlock => '1'
       case p: PackBlock => '2'
-      case o: OccupiedBlock => '3'
+      case o: OccupiedBlock => o.c
     }
     grid.map {
       case gridElemArray =>

@@ -5,7 +5,7 @@ import akka.pattern.ask
 import scala.concurrent.duration._
 import amazonRobots.Protocol._
 import akka.actor.{ActorRef, Actor}
-import AmazonUtils._
+import RobotsRepository._
 
 /**
  * Created by sacry on 17/06/14.
@@ -25,10 +25,9 @@ class Robot(val initPos: Position, val grid:Grid) extends Actor {
       context.actorSelection("/user/*") ! Ask
     }
     case Ask => sender() ! pos
-    case p:Position => println(sender()+ " is at " + p)
-    case Move => currPos = AmazonUtils.randomPosition(grid,pos)
-
-    case "Hello!" => println(name + " thinks \"fu\"" ); sender() ! name
+    case pos: Position => ()
+    case nextPos: NextPosition => ()
+    case Move => currPos = RobotsRepository.randomPosition(grid, pos)
   }
 }
 
