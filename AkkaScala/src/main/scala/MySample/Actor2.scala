@@ -1,10 +1,7 @@
 package MySample
 
 import akka.actor._
-import akka.pattern.{ask, pipe}
-import scala.concurrent.{ExecutionContext}
-import ExecutionContext.Implicits.global
-import scala.concurrent.duration._
+import akka.pattern.pipe
 import akka.routing.RoundRobinRouter
 import scala.util.Random
 
@@ -24,7 +21,7 @@ object ActorFactory {
   }
 
   def randomDuration: Long = {
-    (500 + Random.nextInt(2000)) toLong
+    (500 + Random.nextInt(500)) toLong
   }
 }
 
@@ -35,7 +32,8 @@ object Actor2 extends App {
   val system = ActorSystem("MySystem")
 
   val newOrder = Request(Order("new", 0), 0L)
-  system.actorOf(Manager.props(5), "Manager1") ! newOrder
+
+  system.actorOf(Manager.props(200), "Manager1") ! newOrder
 
   sealed trait Message
 
@@ -57,7 +55,7 @@ object Actor2 extends App {
       case Request(Order("new", 0), 0L) => {
         if (hours < 10) {
           val (order, t) = (randomOrder, randomDuration)
-          println(s"Requesting ${order}. Will take around ${t} MilliSeconds.")
+          println(s"Requesting ${order}. Will take around ${t} Seconds.")
           hours += 1
           workerRouter ! Request(order, t)
         } else {
@@ -67,7 +65,8 @@ object Actor2 extends App {
       case Shutdown => {
         println("Workers are exhausted!");
         context.stop(workerRouter)
-        println("Manager still works.. :(")
+        println("Manager still works.. :( Suicide!!!")
+        self ! PoisonPill
       }
     }
   }
@@ -79,9 +78,9 @@ object Actor2 extends App {
         sender() ! Shutdown
       }
       case Request(order, t) => {
+        sender() ! Request(Order("new", 0), 0L)
         println(s"${self.path} starts working on ${order} for ${t} seconds")
         Thread.sleep(t)
-        sender() ! Request(Order("new", 0), 0L)
       }
     }
   }
