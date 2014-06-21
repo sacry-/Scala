@@ -27,8 +27,6 @@ class Simulation(gridString: String, numRobots: Int, orderMaxSize: Int, verbose:
       system.actorOf(Props(classOf[Robot], realWorld.newRobPosition(c), staticGrid))
     ).toList
 
-  val renderer = system.actorOf(Props(classOf[Renderer], realWorld, robots))
-
   val articles = RobotsRepository.articles(realWorld)
   val orders = RobotsRepository.orders(realWorld)
 
@@ -38,6 +36,7 @@ class Simulation(gridString: String, numRobots: Int, orderMaxSize: Int, verbose:
 
   import scala.concurrent.duration._
 
+  val renderer = system.actorOf(Props(classOf[Renderer], realWorld, robots))
   system.scheduler.schedule(0 milliseconds, 1 seconds, renderer, Update)
 
   // robots(0) ! "find others"

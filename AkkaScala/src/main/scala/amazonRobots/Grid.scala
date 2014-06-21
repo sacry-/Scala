@@ -30,11 +30,12 @@ case class PackBlock(p: Position) extends Block {
   override def toString = "2"
 }
 
-case class OccupiedBlock(p: Position, c:Char) extends Block {
+case class OccupiedBlock(p: Position, c: Char) extends Block {
   override def toString = c.toString
 }
 
-case class Grid(val positions: String) extends AbstractGrid with BlockOperations with GridConverter { self =>
+case class Grid(val positions: String) extends AbstractGrid with BlockOperations with GridConverter {
+  self =>
 
   val grid: TGrid = fromStringToGrid(positions)
 
@@ -47,22 +48,22 @@ case class Grid(val positions: String) extends AbstractGrid with BlockOperations
     openGrid.map(gridElem => gridElem.p).toList
   }
 
-  def neighbors(p:Position):List[Position] = {
-    def inBounds(t:Int) = 0 <= t && t < grid.size
-    List((p.x+1, p.y),(p.x-1, p.y),(p.x, p.y+1),(p.x, p.y-1))
-      .filter( t => inBounds(t._1) && inBounds(t._2) )
-      .map(t => Position(t._1,t._2))
+  def neighbors(p: Position): List[Position] = {
+    def inBounds(t: Int) = 0 <= t && t < grid.size
+    List((p.x + 1, p.y), (p.x - 1, p.y), (p.x, p.y + 1), (p.x, p.y - 1))
+      .filter(t => inBounds(t._1) && inBounds(t._2))
+      .map(t => Position(t._1, t._2))
   }
 
-  def traversableNeighbors(p:Position): List[Position] = {
+  def traversableNeighbors(p: Position): List[Position] = {
     self.neighbors(p).filter(isTraversable(_))
   }
 
-  def accessibleNeighbors(p:Position): List[Position] = {
+  def accessibleNeighbors(p: Position): List[Position] = {
     self.neighbors(p).filter(isAccessible(_))
   }
 
-  def newRobPosition(c:Char): Position = {
+  def newRobPosition(c: Char): Position = {
     val pos = Random.shuffle(self.accessiblePositions).head
     self.occupyPosition(pos, c)
     pos
@@ -77,7 +78,7 @@ trait AbstractGrid {
 
 trait BlockOperations extends AbstractGrid {
 
-  def blockAt(p:Position):Block = grid(p.x)(p.y)
+  def blockAt(p: Position): Block = grid(p.x)(p.y)
 
   def isAccessible(p: Position): Boolean = {
     blockAt(p).isInstanceOf[Accessible]
@@ -91,33 +92,25 @@ trait BlockOperations extends AbstractGrid {
     !blockAt(p).isInstanceOf[Accessible]
   }
 
-  def isTraversable(p:Position) = {
+  def isTraversable(p: Position) = {
     isAccessible(p) || isOccupied(p)
   }
 
-  def occupyPosition(p: Position, c:Char): Boolean = {
-    val accessible = isAccessible(p)
-    if (accessible) {
-      grid(p.x).update(p.y, OccupiedBlock(p,c))
-    }
-    accessible
+  def occupyPosition(p: Position, c: Char) {
+    grid(p.x).update(p.y, OccupiedBlock(p, c))
   }
 
-  def leavePosition(p: Position): Boolean = {
-    val occupied = isOccupied(p)
-    if (occupied) {
-      grid(p.x).update(p.y, EmptyBlock(p))
-    }
-    occupied
+  def leavePosition(p: Position) {
+    grid(p.x).update(p.y, EmptyBlock(p))
   }
 
-  def move(source: Position, target: Position, c:Char): Boolean = {
+  def move(source: Position, target: Position, c: Char) {
     println(s"move($source, $target, $c")
-    val accessible = occupyPosition(target, c)
-    if (accessible)
+    val accessible = isAccessible(target)
+    if (accessible) {
+      occupyPosition(target, c)
       leavePosition(source)
-    else
-      accessible
+    }
   }
 }
 

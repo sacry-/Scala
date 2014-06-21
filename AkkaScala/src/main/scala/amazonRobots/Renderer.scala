@@ -22,7 +22,7 @@ class Renderer(g: Grid, ls: List[ActorRef]) extends Actor {
 
   def receive = {
     case Update => {
-      ls foreach (ref => ref ! Ask)
+      ls foreach (ref => ref ! Position)
       ls foreach (ref => ref ! Move)
       println(g)
     }
