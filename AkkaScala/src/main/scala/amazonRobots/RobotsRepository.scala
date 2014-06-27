@@ -10,6 +10,7 @@ import scala.util.Random
 object RobotsRepository {
 
   val dlTime = 5000L
+  val DUMMY = 'X'
 
   def articles(g: Grid): List[Article] = {
     List(
@@ -20,8 +21,8 @@ object RobotsRepository {
   }
 
   def randomPosition(g: Grid, p: Position): Position = {
-    val traversables = g.traversableNeighbors(p)
-    traversables(Random.nextInt(traversables.size))
+    val access = g.accessibleNeighbors(p)
+    access(Random.nextInt(access.size))
   }
 
   def orders(g: Grid) = {
@@ -34,6 +35,13 @@ object RobotsRepository {
 
   def generateRobotNames(numOfRobots: Int) = {
     (65 until (65 + numOfRobots)).map(_.toChar)
+  }
+
+  def actorNameByRef(actor: ActorRef): Char = {
+    val nameAsList = actor.path.name.toList
+    if (nameAsList.size > 0)
+      return nameAsList.last.toUpper
+    DUMMY
   }
 
   case class Article(productSize: Int, name: String, productPos: Position)

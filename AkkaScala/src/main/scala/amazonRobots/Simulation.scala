@@ -9,37 +9,31 @@ import RobotsRepository._
  * Created by Swaneet on 17.06.2014.
  */
 object Simulation {
-  def apply(gridString: String, numRobots: Int = 6, orderMaxSize: Int = 50, verbose: Boolean = false) =
-    new Simulation(gridString, numRobots, orderMaxSize, verbose)
+  def apply(gridString: String,
+            numRobots: Int = 6,
+            orderMaxSize: Int = 50) =
+    new Simulation(gridString, numRobots, orderMaxSize)
 }
 
 
-class Simulation(gridString: String, numRobots: Int, orderMaxSize: Int, verbose: Boolean) {
+class Simulation(gridString: String, numRobots: Int, orderMaxSize: Int) {
 
   val system = ActorSystem("NaSC")
   val realWorld = Grid(gridString)
   val staticGrid = Grid(gridString)
 
-  if (verbose) println(s"Initial grid: $realWorld")
-
   val robots: List[ActorRef] =
     generateRobotNames(numRobots).map(c =>
-      system.actorOf(Props(classOf[Robot], realWorld.newRobPosition(c), staticGrid))
+      system.actorOf(Props(classOf[Robot], realWorld.newRobPosition(c), realWorld, system))
     ).toList
 
   val articles = RobotsRepository.articles(realWorld)
   val orders = RobotsRepository.orders(realWorld)
 
-  def run(ms: Long) = {
-
-  }
-
   import scala.concurrent.duration._
 
-  val renderer = system.actorOf(Props(classOf[Renderer], realWorld, robots))
-  system.scheduler.schedule(0 milliseconds, 1 seconds, renderer, Update)
-
-  // robots(0) ! "find others"
+  val renderer = system.actorOf(Props(classOf[Renderer], system, realWorld))
+  system.scheduler.schedule(0 milliseconds, 4 seconds, renderer, Update)
 
 }
 

@@ -43,7 +43,7 @@ case class Grid(val positions: String) extends AbstractGrid with BlockOperations
     .map(_.map(_.toString).mkString(" ")
     ).mkString("\n")
 
-  def accessiblePositions: List[Position] = {
+  def allAccessiblePositions: List[Position] = {
     val openGrid: Array[Block] = grid.flatMap(_.filter(gridElem => isAccessible(gridElem.p)))
     openGrid.map(gridElem => gridElem.p).toList
   }
@@ -59,12 +59,16 @@ case class Grid(val positions: String) extends AbstractGrid with BlockOperations
     self.neighbors(p).filter(isTraversable(_))
   }
 
+  def occupiedNeighbors(p: Position): List[Position] = {
+    self.neighbors(p).filter(isOccupied(_))
+  }
+
   def accessibleNeighbors(p: Position): List[Position] = {
     self.neighbors(p).filter(isAccessible(_))
   }
 
   def newRobPosition(c: Char): Position = {
-    val pos = Random.shuffle(self.accessiblePositions).head
+    val pos = Random.shuffle(self.allAccessiblePositions).head
     self.occupyPosition(pos, c)
     pos
   }
@@ -105,12 +109,8 @@ trait BlockOperations extends AbstractGrid {
   }
 
   def move(source: Position, target: Position, c: Char) {
-    println(s"move($source, $target, $c")
-    val accessible = isAccessible(target)
-    if (accessible) {
-      occupyPosition(target, c)
-      leavePosition(source)
-    }
+    leavePosition(source)
+    occupyPosition(target, c)
   }
 }
 

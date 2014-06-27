@@ -1,43 +1,55 @@
 package amazonRobots
 
-import akka.actor.{ActorRef, Actor}
+import akka.actor.{ActorSystem, ActorSelection, ActorRef, Actor}
 import Protocol._
 
 /**
  * Created by Swaneet on 19.06.2014.
  */
-class Renderer(g: Grid, ls: List[ActorRef]) extends Actor {
+class Renderer(system: ActorSystem, g: Grid) extends Actor {
 
-  import scala.collection.mutable.Map
+  import scala.collection.mutable.Queue
 
-  val positions: Map[ActorRef, Position] = Map.empty
-  val DUMMY = 'X'
-
-  def actorNameByRef(actor: ActorRef): Char = {
-    val nameAsList = actor.path.name.toList
-    if (nameAsList.size > 0)
-      return nameAsList.last.toUpper
-    DUMMY
-  }
+  @volatile private var positions: Queue[(ActorRef, Position, Position)] =
+    Queue.empty[(ActorRef, Position, Position)]
 
   def receive = {
     case Update => {
-      ls foreach (ref => ref ! Position)
-      ls foreach (ref => ref ! Move)
-      println(g)
-    }
-    case p@Position(x, y) => {
-      val actor = sender()
-      val maybeOldPos = positions.get(actor)
-      maybeOldPos match {
-        case None => positions.put(actor, p)
-        case Some(`p`) => ()
-        case Some(oldPos) => {
-          g.move(oldPos, p, actorNameByRef(actor))
-          positions.put(actor, p)
-        }
+      while (positions.nonEmpty) {
+        val (actor, source, target) = positions.dequeue()
+        val name = RobotsRepository.actorNameByRef(actor)
+        g.move(source, target, name)
       }
+      println(getFalseStates)
+      println(g)
+      system.actorSelection("/user/*") ! Move
     }
+    case GUIPosition(source: Position, target: Position) => {
+      //println("position from: " + RobotsRepository.actorNameByRef(sender()))
+      positions.enqueue((sender(), source, target))
+    }
+  }
+
+  def getFalseStates: String = {
+    var msg = ""
+    val robots = 'A' until 'G' toList
+
+    val inter = g.fromGridToString().filter(c =>
+      c >= robots.head && c <= robots.last
+    ).toList
+
+    if (inter.toSet.size != inter.size)
+      msg += "Error: Duplicated Robots\n"
+
+    val robotsNotInView = robots.foldLeft(List[Char]()) {
+      case (acc, c) if !inter.contains(c) => c :: acc
+      case (acc, _) => acc
+    }
+
+    if (robotsNotInView.nonEmpty)
+      msg += s"Error: Robot Vanished {${robotsNotInView.mkString(", ")}}\n"
+
+    msg
   }
 
 }
