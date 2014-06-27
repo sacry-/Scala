@@ -10,4 +10,7 @@ object exercise_06_05_2014 {
     for(x <- dlist)
       println(x map(math.abs(_)) filter(_ < 100) getOrElse(""))
   }
+
+
+
 }
