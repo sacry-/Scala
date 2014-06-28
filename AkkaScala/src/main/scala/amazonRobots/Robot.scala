@@ -1,6 +1,5 @@
 package amazonRobots
 
-import scala.concurrent.{ExecutionContext}
 import scala.concurrent.duration._
 import akka.actor._
 import akka.util.Timeout
@@ -16,10 +15,14 @@ class Robot(val initPos: Position, val grid: Grid, system: ActorSystem, renderer
 
   override def toString = RobotsRepository.actorNameByRef(self).toString
 
+  private var currPos: Position = initPos
+
   def position: Position = Position(currPos.x, currPos.y)
 
+  private var state = new State(self)
+
   def generateFreePosition: Position = {
-    val access = grid.accessibleNeighbors(position).filterNot(p => reservedPositions.contains(p))
+    val access = grid.accessibleNeighbors(position).filterNot(state.isAlreadyReserved(_))
     if (access.isEmpty)
       position
     else
@@ -35,20 +38,17 @@ class Robot(val initPos: Position, val grid: Grid, system: ActorSystem, renderer
 
   def priority: Double = Random.nextDouble()
 
-  private var currPos: Position = initPos
-  private var robotsPriority: List[(ActorRef, Priority)] = List.empty
-
   def receive: Receive = {
     case Move => {
-      reset
+      state = new State(self)
       system.actorSelection("/user/*") ! Priority(priority)
     }
     case p: Priority => {
-      robotsPriority = (sender(), p) :: robotsPriority
-      if (robotsPriority.size >= numRobots) {
-        robotsPriority = robotsPriority.sortBy(_._2.priority)
-        if (robotsPriority.head._1 == self) {
-          debugIt(robotsPriority.map(t => RobotsRepository.actorNameByRef(t._1) + " " + t._2).mkString("\n"))
+      state.addRobotsPriority(sender(), p)
+      if (state.robotsPriority.size >= numRobots) {
+        state.robotsSort
+        if (state.isFirstPrioritized) {
+          debugIt(state.robotsPriority.map(t => RobotsRepository.actorNameByRef(t._1) + " " + t._2).mkString("\n"))
           self ! Ticket
         }
       }
@@ -62,43 +62,40 @@ class Robot(val initPos: Position, val grid: Grid, system: ActorSystem, renderer
       sender() ! ACK
     }
     case ReservePosition(x, y) => {
-      reservedPositions = Position(x, y) :: reservedPositions
+      state.reservePosition(x, y)
     }
     case e => {
       debugIt(this.toString + " case e => " + e.toString)
     }
   }
 
-  private var k: Int = 0
-  private var acks: Int = 0
-  private var nextMove: Position = Position(-1, -1)
-  private var reservedPositions: List[Position] = List.empty
-
   def moving: Receive = {
     case Move => {
-      nextMove = generateFreePosition
-      val lower = lowerRobots
-      k = lower.size
-      acks = 0
-      if (k == 0)
+      state.nextMove = generateFreePosition
+      val lower = state.lowerRobots
+      state.acks = 0
+      state.k = lower.size
+      if (state.k == 0)
         self ! ACK
       else {
+        val (x, y) = state.nextMoveAsTuple
         lower map {
-          case (actor, prio) => actor ! AskPosition(nextMove.x, nextMove.y)
+          case (actor, prio) => actor ! AskPosition(x, y)
         }
       }
     }
     case ACK => {
-      acks += 1
-      if (acks >= k) {
-        debugIt(currPos + ", " + nextMove + ", " + this.toString)
-        system.actorSelection("/user/*") ! ReservePosition(nextMove.x, nextMove.y)
-        lowerRobots.headOption match {
+      state.acks += 1
+      if (state.acks >= state.k) {
+        debugIt(currPos + ", " + state.nextMove + ", " + this.toString)
+        val (x, y) = state.nextMoveAsTuple
+        system.actorSelection("/user/*") ! ReservePosition(x, y)
+        state.lowerRobots.headOption match {
           case Some((actor, _)) => actor ! Ticket
           case None => "fin"
         }
-        renderer ! GUIPosition(position, nextMove)
-        currPos = nextMove
+        renderer ! GUIPosition(position, state.nextMove)
+        currPos = state.nextMove
         context.become(receive)
       }
     }
@@ -108,20 +105,6 @@ class Robot(val initPos: Position, val grid: Grid, system: ActorSystem, renderer
     case _: ReservePosition => println("ich kenne meine pos")
   }
 
-  def lowerRobots = {
-    robotsPriority.dropWhile {
-      case (actor, _) => actor != self
-    }.drop(1)
-  }
-
-  def reset {
-    robotsPriority = List.empty
-    reservedPositions = List.empty
-    k = 0
-    acks = 0
-    nextMove = Position(-1, -1)
-  }
-
   def debugIt(msg: String) {
     if (true)
       println(msg)
@@ -129,6 +112,42 @@ class Robot(val initPos: Position, val grid: Grid, system: ActorSystem, renderer
 }
 
 
-object Robot {
+class State(me: ActorRef) {
+
+  var k: Int = 0
+  var acks: Int = 0
+  var nextMove: Position = Position(-1, -1)
+  var reservedPositions: List[Position] = List.empty
+  var robotsPriority: List[(ActorRef, Priority)] = List.empty
+
+  def nextMoveAsTuple: (Int, Int) = {
+    (nextMove.x, nextMove.y)
+  }
+
+  def isAlreadyReserved(p: Position): Boolean = {
+    reservedPositions.contains(p)
+  }
+
+  def reservePosition(x: Int, y: Int) {
+    reservedPositions = Position(x, y) :: reservedPositions
+  }
+
+  def addRobotsPriority(sender: ActorRef, priority: Priority) {
+    robotsPriority = (sender, priority) :: robotsPriority
+  }
+
+  def robotsSort {
+    robotsPriority = robotsPriority.sortBy(_._2.priority)
+  }
+
+  def isFirstPrioritized: Boolean = {
+    robotsPriority.head._1 == me
+  }
+
+  def lowerRobots = {
+    robotsPriority.dropWhile {
+      case (actor, _) => actor != me
+    }.drop(1)
+  }
 
 }
