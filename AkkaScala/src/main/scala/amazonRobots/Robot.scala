@@ -6,6 +6,8 @@ import akka.util.Timeout
 import amazonRobots.Protocol._
 
 import scala.util.Random
+import scala.collection.mutable.Queue
+import scala.collection.mutable
 
 /**
  * Created by sacry on 17/06/14.
@@ -30,10 +32,44 @@ class Robot(val initPos: Position, val grid: Grid, system: ActorSystem, renderer
   }
 
   def shortestPath: List[Position] = {
-    val all = grid.allAccessiblePositions
-    val randomPos = all(Random.nextInt(all.size))
-    // Dijkstra
-    List.empty
+    val graph = grid.allTraversablePositions
+    val (_, preds) = dijkstra(position, graph)
+    val dest = graph(Random.nextInt(graph.size))
+
+    def path(src:Position, dest:Position):List[Position] = dest match {
+      case `src` => List(src)
+      case dest => dest :: path(src, preds(dest))
+    }
+
+    println(this.toString + ": " + position + " -> " + dest)
+    val p = path(position, dest).reverse
+    println(this.toString + ": " + p)
+    p
+  }
+
+  import scala.collection.mutable
+  def dijkstra(src:Position, graph: List[Position]):(mutable.Map[Position, Int], mutable.Map[Position, Position]) = {
+    import scala.collection.mutable._
+    val infDist = graph.size*2
+    val init = graph map { pos => if (pos == src) (src,0) else (pos, infDist) }
+    val dists:Map[Position, Int] = mutable.Map.empty.++=(init)
+    val preds:Map[Position, Position] = mutable.Map.empty
+    var queue: Queue[Position] = Queue.empty.++=(graph)
+
+    while (queue.nonEmpty){
+      val (curr, dist) = dists.filterKeys( p => queue.contains(p) ).minBy( _._2 )
+      queue.dequeueFirst( _ == curr)
+
+      grid.traversableNeighbors(curr) foreach {
+        case v if dists(v) > dist + 1 => {
+          preds.+=( (v, curr) )
+          dists.+=( (v, dist + 1) )
+        }
+        case _ => ()
+      }
+    }
+    println(preds)
+    (dists, preds)
   }
 
   def priority: Double = Random.nextDouble()
@@ -48,6 +84,7 @@ class Robot(val initPos: Position, val grid: Grid, system: ActorSystem, renderer
       if (state.robotsPriority.size >= numRobots) {
         state.robotsSort
         if (state.isFirstPrioritized) {
+          shortestPath
           debugIt(state.robotsPriority.map(t => RobotsRepository.actorNameByRef(t._1) + " " + t._2).mkString("\n"))
           self ! Ticket
         }

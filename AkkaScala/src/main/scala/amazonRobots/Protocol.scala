@@ -19,6 +19,8 @@ object Protocol {
 
   case object Ticket extends Message
 
+  lazy val nilPos = Position(-1,-1)
+  val isNilPos: Position => Boolean = _ == nilPos
 
   // depre
   case object ACK extends Message

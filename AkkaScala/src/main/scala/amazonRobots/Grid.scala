@@ -48,6 +48,11 @@ case class Grid(val positions: String) extends AbstractGrid with BlockOperations
     openGrid.map(gridElem => gridElem.p).toList
   }
 
+  def allTraversablePositions: List[Position] = {
+    val openGrid: Array[Block] = grid.flatMap(_.filter(gridElem => isTraversable(gridElem.p)))
+    openGrid.map(gridElem => gridElem.p).toList
+  }
+
   def neighbors(p: Position): List[Position] = {
     def inBounds(t: Int) = 0 <= t && t < grid.size
     List((p.x + 1, p.y), (p.x - 1, p.y), (p.x, p.y + 1), (p.x, p.y - 1))
