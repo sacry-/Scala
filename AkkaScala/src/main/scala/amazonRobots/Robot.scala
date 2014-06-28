@@ -1,15 +1,11 @@
 package amazonRobots
 
-import amazonRobots.Protocol._
-import scala.concurrent.{Await, ExecutionContext}
-import ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext}
 import scala.concurrent.duration._
 import akka.actor._
 import akka.util.Timeout
-import amazonRobots.Protocol.Position
 import amazonRobots.Protocol._
 
-import com.sun.javafx.collections.transformation.SortedList
 import scala.util.Random
 
 /**
@@ -17,8 +13,6 @@ import scala.util.Random
  */
 class Robot(val initPos: Position, val grid: Grid, system: ActorSystem, renderer: ActorRef, numRobots: Int) extends Actor {
   implicit val timeout = Timeout(1 seconds)
-
-  //import context._
 
   override def toString = RobotsRepository.actorNameByRef(self).toString
 
@@ -30,6 +24,13 @@ class Robot(val initPos: Position, val grid: Grid, system: ActorSystem, renderer
       position
     else
       access(Random.nextInt(access.size))
+  }
+
+  def shortestPath: List[Position] = {
+    val all = grid.allAccessiblePositions
+    val randomPos = all(Random.nextInt(all.size))
+    // Dijkstra
+    List.empty
   }
 
   def priority: Double = Random.nextDouble()
@@ -44,11 +45,10 @@ class Robot(val initPos: Position, val grid: Grid, system: ActorSystem, renderer
     }
     case p: Priority => {
       robotsPriority = (sender(), p) :: robotsPriority
-      //debugIt("Me: " + this.toString + "  roboPrio: " + robotsPriority)
       if (robotsPriority.size >= numRobots) {
         robotsPriority = robotsPriority.sortBy(_._2.priority)
         if (robotsPriority.head._1 == self) {
-          println(robotsPriority.map(t => RobotsRepository.actorNameByRef(t._1) + " " + t._2))
+          debugIt(robotsPriority.map(t => RobotsRepository.actorNameByRef(t._1) + " " + t._2).mkString("\n"))
           self ! Ticket
         }
       }
@@ -65,7 +65,7 @@ class Robot(val initPos: Position, val grid: Grid, system: ActorSystem, renderer
       reservedPositions = Position(x, y) :: reservedPositions
     }
     case e => {
-      println(this.toString + " case e => " + e.toString)
+      debugIt(this.toString + " case e => " + e.toString)
     }
   }
 
