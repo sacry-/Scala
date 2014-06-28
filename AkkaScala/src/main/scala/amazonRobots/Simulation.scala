@@ -22,9 +22,10 @@ class Simulation(gridString: String, numRobots: Int, orderMaxSize: Int) {
   val realWorld = Grid(gridString)
   val staticGrid = Grid(gridString)
 
+  val renderer = system.actorOf(Props(classOf[Renderer], system, realWorld))
   val robots: List[ActorRef] =
     generateRobotNames(numRobots).map(c =>
-      system.actorOf(Props(classOf[Robot], realWorld.newRobPosition(c), realWorld, system))
+      system.actorOf(Props(classOf[Robot], realWorld.newRobPosition(c), realWorld, system, renderer, numRobots), name = c.toString)
     ).toList
 
   val articles = RobotsRepository.articles(realWorld)
@@ -32,8 +33,7 @@ class Simulation(gridString: String, numRobots: Int, orderMaxSize: Int) {
 
   import scala.concurrent.duration._
 
-  val renderer = system.actorOf(Props(classOf[Renderer], system, realWorld))
-  system.scheduler.schedule(0 milliseconds, 4 seconds, renderer, Update)
+  system.scheduler.schedule(1 seconds, 5 seconds, renderer, Update)
 
 }
 

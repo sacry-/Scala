@@ -13,8 +13,14 @@ object Protocol {
 
   case class Position(x: Int, y: Int) extends Message
 
-  case class NextPosition(x: Int, y: Int) extends Message
+  case class ReservePosition(x: Int, y: Int) extends Message
 
+  case class Priority(priority: Double) extends Message
+
+  case object Ticket extends Message
+
+
+  // depre
   case object ACK extends Message
 
   case object NACK extends Message

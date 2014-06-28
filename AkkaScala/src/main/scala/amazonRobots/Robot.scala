@@ -7,92 +7,123 @@ import scala.concurrent.duration._
 import akka.actor._
 import akka.util.Timeout
 import amazonRobots.Protocol.Position
-import amazonRobots.Protocol.NextPosition
+import amazonRobots.Protocol._
+
+import com.sun.javafx.collections.transformation.SortedList
 import scala.util.Random
 
 /**
  * Created by sacry on 17/06/14.
  */
-class Robot(val initPos: Position, val grid: Grid, system: ActorSystem) extends Actor {
+class Robot(val initPos: Position, val grid: Grid, system: ActorSystem, renderer: ActorRef, numRobots: Int) extends Actor {
   implicit val timeout = Timeout(1 seconds)
+
+  //import context._
 
   override def toString = RobotsRepository.actorNameByRef(self).toString
 
-  private var lastPos: Position = initPos
-  private var currPos: Position = initPos
-  private var trail: List[Position] = List.empty
-
   def position: Position = Position(currPos.x, currPos.y)
 
-  private var neighbourRobots: List[Position] = List.empty
-  private var nextMoveByOthers: List[Position] = List.empty
-  private var nextMove = Position(-1, -1)
-  private var ACK_received = false
-
-  def freePosition: Position = {
-    val access = grid.accessibleNeighbors(position)
-    position :: trail
-    val realAccess = for (elem <- access if !nextMoveByOthers.contains(elem)) yield elem
-    if (realAccess.isEmpty)
+  def generateFreePosition: Position = {
+    val access = grid.accessibleNeighbors(position).filterNot(p => reservedPositions.contains(p))
+    if (access.isEmpty)
       position
     else
-      realAccess(Random.nextInt(realAccess.size))
+      access(Random.nextInt(access.size))
   }
+
+  def priority: Double = Random.nextDouble()
+
+  private var currPos: Position = initPos
+  private var robotsPriority: List[(ActorRef, Priority)] = List.empty
 
   def receive: Receive = {
     case Move => {
       reset
-      neighbourRobots = grid.occupiedNeighbors(position)
-      nextMove = freePosition
-      if (neighbourRobots.isEmpty)
-        system.actorSelection("/user/*") ! NextPosition(nextMove.x, nextMove.y)
-      else
-        neighbourRobots map (pos => system.actorSelection("/user/*") ! AskPosition(pos.x, pos.y))
+      system.actorSelection("/user/*") ! Priority(priority)
     }
-    case p: AskPosition => {
-      sender() ! position
+    case p: Priority => {
+      robotsPriority = (sender(), p) :: robotsPriority
+      //debugIt("Me: " + this.toString + "  roboPrio: " + robotsPriority)
+      if (robotsPriority.size >= numRobots) {
+        robotsPriority = robotsPriority.sortBy(_._2.priority)
+        if (robotsPriority.head._1 == self) {
+          println(robotsPriority.map(t => RobotsRepository.actorNameByRef(t._1) + " " + t._2))
+          self ! Ticket
+        }
+      }
     }
-    case p: Position => {
-      sender() ! NextPosition(nextMove.x, nextMove.y)
+    case Ticket => {
+      context.become(moving)
+      self ! Move
     }
-    case p: NextPosition => {
-      if (nextMove != p) {
-        p :: nextMoveByOthers
-        sender() ! ACK
-        debugIt("ACK send: " + this.toString)
-      } else {
-        sender() ! NACK
-        debugIt("NACK send: " + this.toString)
+    case AskPosition(x, y) => {
+      // todo
+      sender() ! ACK
+    }
+    case ReservePosition(x, y) => {
+      reservedPositions = Position(x, y) :: reservedPositions
+    }
+    case e => {
+      println(this.toString + " case e => " + e.toString)
+    }
+  }
+
+  private var k: Int = 0
+  private var acks: Int = 0
+  private var nextMove: Position = Position(-1, -1)
+  private var reservedPositions: List[Position] = List.empty
+
+  def moving: Receive = {
+    case Move => {
+      nextMove = generateFreePosition
+      val lower = lowerRobots
+      k = lower.size
+      acks = 0
+      if (k == 0)
         self ! ACK
+      else {
+        lower map {
+          case (actor, prio) => actor ! AskPosition(nextMove.x, nextMove.y)
+        }
       }
     }
     case ACK => {
-      if(!ACK_received){
-        debugIt("ACK received: " + this.toString)
-        context.actorSelection("/user/*") ! GUIPosition(position, nextMove)
-        lastPos = currPos
+      acks += 1
+      if (acks >= k) {
+        debugIt(currPos + ", " + nextMove + ", " + this.toString)
+        system.actorSelection("/user/*") ! ReservePosition(nextMove.x, nextMove.y)
+        lowerRobots.headOption match {
+          case Some((actor, _)) => actor ! Ticket
+          case None => "fin"
+        }
+        renderer ! GUIPosition(position, nextMove)
         currPos = nextMove
-        ACK_received = true
+        context.become(receive)
       }
     }
     case NACK => {
-      debugIt("NACK received: " + this.toString)
-      nextMove :: nextMoveByOthers
-      nextMove = freePosition
-      neighbourRobots map (pos => system.actorSelection("/user/*") ! AskPosition(pos.x, pos.y))
+      println("gibts nicht")
     }
-    case Shutdown => self ! PoisonPill
+    case _: ReservePosition => println("ich kenne meine pos")
+  }
+
+  def lowerRobots = {
+    robotsPriority.dropWhile {
+      case (actor, _) => actor != self
+    }.drop(1)
   }
 
   def reset {
-    neighbourRobots = List.empty
-    nextMoveByOthers = trail
+    robotsPriority = List.empty
+    reservedPositions = List.empty
+    k = 0
+    acks = 0
     nextMove = Position(-1, -1)
-    ACK_received = false
   }
 
   def debugIt(msg: String) {
-    if (false)
+    if (true)
       println(msg)
   }
 }
